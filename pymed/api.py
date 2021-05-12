@@ -72,6 +72,41 @@ class PubMed(object):
         # Chain the batches back together and return the list
         return itertools.chain.from_iterable(articles)
 
+
+    def query_ids(self: object, article_ids: list, max_results: int = 100):
+        """ Method that executes a query agains the GraphQL schema, automatically
+            inserting the PubMed data loader.
+
+            Parameters:
+                - query     String, the GraphQL query to execute against the schema.
+
+            Returns:
+                - result    ExecutionResult, GraphQL object that contains the result
+                            in the "data" attribute.
+        """
+
+        # # Retrieve the article IDs for the query
+        # article_ids = self._getArticleIds(query=query, max_results=max_results)
+
+        # Get the articles themselves
+        articles = list(
+            [
+                self._getArticles(article_ids=batch)
+                for batch in batches(article_ids, 250)
+            ]
+        )
+
+        # Chain the batches back together and return the list
+        return itertools.chain.from_iterable(articles)
+
+    def batch_query(self: object, query: str, batch_size: int = 250):
+        # Retrieve the article IDs for the query
+        article_ids = self._getArticleIds(query=query, max_results=10000000)
+
+        # Get the articles themselves
+        for batch in batches(article_ids, batch_size):
+            yield list(self._getArticles(article_ids=batch))
+
     def getTotalResultsCount(self: object, query: str) -> int:
         """ Helper method that returns the total number of results that match the query.
 
