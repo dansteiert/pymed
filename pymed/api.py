@@ -46,7 +46,7 @@ class PubMed(object):
         # Define the standard / default query parameters
         self.parameters = {"tool": tool, "email": email, "db": "pubmed"}
 
-    def query(self: object, query: str, max_results: int = 100):
+    def query(self: object, query: str, max_results: int = 100, timeout: int = 10):
         """ Method that executes a query agains the GraphQL schema, automatically
             inserting the PubMed data loader.
 
@@ -59,12 +59,12 @@ class PubMed(object):
         """
 
         # Retrieve the article IDs for the query
-        article_ids = self._getArticleIds(query=query, max_results=max_results)
+        article_ids = self._getArticleIds(query=query, max_results=max_results, timeout: int = 10)
 
         # Get the articles themselves
         articles = list(
             [
-                self._getArticles(article_ids=batch)
+                self._getArticles(article_ids=batch, timeout=timeout)
                 for batch in batches(article_ids, 250)
             ]
         )
@@ -73,7 +73,7 @@ class PubMed(object):
         return itertools.chain.from_iterable(articles)
 
 
-    def query_ids(self: object, article_ids: list, max_results: int = 100):
+    def query_ids(self: object, article_ids: list, max_results: int = 100, timeout:int =10):
         """ Method that executes a query agains the GraphQL schema, automatically
             inserting the PubMed data loader.
 
@@ -91,7 +91,7 @@ class PubMed(object):
         # Get the articles themselves
         articles = list(
             [
-                self._getArticles(article_ids=batch)
+                self._getArticles(article_ids=batch, timeout=timeout)
                 for batch in batches(article_ids, 250)
             ]
         )
@@ -99,15 +99,15 @@ class PubMed(object):
         # Chain the batches back together and return the list
         return itertools.chain.from_iterable(articles)
 
-    def batch_query(self: object, query: str, batch_size: int = 250):
+    def batch_query(self: object, query: str, batch_size: int = 250, timeout:int = 10):
         # Retrieve the article IDs for the query
-        article_ids = self._getArticleIds(query=query, max_results=10000000)
+        article_ids = self._getArticleIds(query=query, max_results=10000000, timeout=timeout)
 
         # Get the articles themselves
         for batch in batches(article_ids, batch_size):
-            yield list(self._getArticles(article_ids=batch))
+            yield list(self._getArticles(article_ids=batch, timeout=timeout))
 
-    def getTotalResultsCount(self: object, query: str) -> int:
+    def getTotalResultsCount(self: object, query: str, timeout: int = 10) -> int:
         """ Helper method that returns the total number of results that match the query.
 
             Parameters:
@@ -125,7 +125,7 @@ class PubMed(object):
         parameters["retmax"] = 1
 
         # Make the request (request a single article ID for this search)
-        response = self._get(url="/entrez/eutils/esearch.fcgi", parameters=parameters)
+        response = self._get(url="/entrez/eutils/esearch.fcgi", parameters=parameters, timeout=timeout)
 
         # Get from the returned meta data the total number of available results for the query
         total_results_count = int(response.get("esearchresult", {}).get("count"))
@@ -147,7 +147,7 @@ class PubMed(object):
         return len(self._requestsMade) > self._rateLimit
 
     def _get(
-        self: object, url: str, parameters: dict, output: str = "json"
+        self: object, url: str, parameters: dict, output: str = "json", timeout: int = 10
     ) -> Union[dict, str]:
         """ Generic helper method that makes a request to PubMed.
 
@@ -172,7 +172,7 @@ class PubMed(object):
         parameters["retmode"] = output
 
         # Make the request to PubMed
-        response = requests.get(f"{BASE_URL}{url}", params=parameters)
+        response = requests.get(f"{BASE_URL}{url}", params=parameters, timeout=timeout)
 
         # Check for any errors
         response.raise_for_status()
@@ -186,7 +186,7 @@ class PubMed(object):
         else:
             return response.text
 
-    def _getArticles(self: object, article_ids: list) -> list:
+    def _getArticles(self: object, article_ids: list, timeout: int = 10) -> list:
         """ Helper method that batches a list of article IDs and retrieves the content.
 
             Parameters:
@@ -202,7 +202,7 @@ class PubMed(object):
 
         # Make the request
         response = self._get(
-            url="/entrez/eutils/efetch.fcgi", parameters=parameters, output="xml"
+            url="/entrez/eutils/efetch.fcgi", parameters=parameters, output="xml", timeout=timeout
         )
 
         # Parse as XML
@@ -214,7 +214,7 @@ class PubMed(object):
         for book in root.iter("PubmedBookArticle"):
             yield PubMedBookArticle(xml_element=book)
 
-    def _getArticleIds(self: object, query: str, max_results: int) -> list:
+    def _getArticleIds(self: object, query: str, max_results: int, timeout: int = 10) -> list:
         """ Helper method to retrieve the article IDs for a query.
 
             Parameters:
@@ -240,7 +240,7 @@ class PubMed(object):
             parameters["retmax"] = max_results
 
         # Make the first request to PubMed
-        response = self._get(url="/entrez/eutils/esearch.fcgi", parameters=parameters)
+        response = self._get(url="/entrez/eutils/esearch.fcgi", parameters=parameters, timeout=timeout)
 
         # Add the retrieved IDs to the list
         article_ids += response.get("esearchresult", {}).get("idlist", [])
