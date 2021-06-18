@@ -59,7 +59,7 @@ class PubMed(object):
         """
 
         # Retrieve the article IDs for the query
-        article_ids = self._getArticleIds(query=query, max_results=max_results, timeout: int = 10)
+        article_ids = self._getArticleIds(query=query, max_results=max_results, timeout=timeout)
 
         # Get the articles themselves
         articles = list(
