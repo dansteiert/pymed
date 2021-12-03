@@ -73,7 +73,25 @@ class PubMed(object):
         return itertools.chain.from_iterable(articles)
 
 
-    def query_ids(self: object, article_ids: list, max_results: int = 100, timeout:int =10):
+    def query_publication_ids(self: object, query: str, max_results: int = 100, timeout: int = 10):
+        """ Method that executes a query agains the GraphQL schema, automatically
+            inserting the PubMed data loader.
+
+            Parameters:
+                - query     String, the GraphQL query to execute against the schema.
+
+            Returns:
+                - result    ExecutionResult, GraphQL object that contains the result
+                            in the "data" attribute.
+        """
+
+        # Retrieve the article IDs for the query
+        article_ids = self._getArticleIds(query=query, max_results=max_results, timeout=timeout)
+
+        return article_ids
+
+
+    def get_publications_from_ids(self: object, article_ids: list, max_results: int = 100, timeout:int =10):
         """ Method that executes a query agains the GraphQL schema, automatically
             inserting the PubMed data loader.
 
