@@ -91,7 +91,7 @@ class PubMed(object):
         return article_ids
 
 
-    def get_publications_from_ids(self: object, article_ids: list, max_results: int = 100, timeout:int =10):
+    def get_publications_from_ids(self: object, article_ids: list, timeout:int =10):
         """ Method that executes a query agains the GraphQL schema, automatically
             inserting the PubMed data loader.
 
@@ -265,7 +265,7 @@ class PubMed(object):
 
         # Get information from the response
         total_result_count = int(response.get("esearchresult", {}).get("count"))
-        retrieved_count = int(response.get("esearchresult", {}).get("retmax"))
+        retrieved_count = int(response.get("esearchresult", {}).get("retmax")) -1
 
         # If no max is provided (-1) we'll try to retrieve everything
         if max_results == -1:
