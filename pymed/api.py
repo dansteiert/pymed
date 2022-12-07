@@ -279,7 +279,7 @@ class PubMed(object):
                 year_step = (max_year - min_year)// batch_count
                 year_boundaries = {min_year + (year_step*i) for i in range(batch_count)}
                 for i in year_boundaries:
-                    article_ids += _getArticleIds(query=query, max_results=max_results, timeout=timeout,
+                    article_ids += self._getArticleIds(query=query, max_results=max_results, timeout=timeout,
                                                   min_year=i-year_step + 1, max_year=i)
                 return article_ids
             else:
@@ -287,7 +287,7 @@ class PubMed(object):
                     month_step = (max_month - min_month) // batch_count
                     month_boundaries = {min_month + (month_step * i) for i in range(batch_count)}
                     for i in month_boundaries:
-                        article_ids += _getArticleIds(query=query, max_results=max_results, timeout=timeout,
+                        article_ids += self._getArticleIds(query=query, max_results=max_results, timeout=timeout,
                                                       min_year=min_year, max_year=max_year,
                                                       min_month=i -month_step + 1, max_month=i)
                     return article_ids
@@ -296,7 +296,7 @@ class PubMed(object):
                         day_step = (max_day - min_day) // batch_count
                         day_boundaries = {min_day + (day_step * i) for i in range(batch_count)}
                         for i in day_boundaries:
-                            article_ids += _getArticleIds(query=query, max_results=max_results, timeout=timeout,
+                            article_ids += self._getArticleIds(query=query, max_results=max_results, timeout=timeout,
                                                           min_year=min_year, max_year=max_year,
                                                           min_month=min_month, max_month=max_month,
                                                           min_day=i - day_step + 1, max_day=i)
