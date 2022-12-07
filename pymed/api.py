@@ -232,7 +232,8 @@ class PubMed(object):
         for book in root.iter("PubmedBookArticle"):
             yield PubMedBookArticle(xml_element=book)
 
-    def _getArticleIds(self: object, query: str, max_results: int, timeout: int = 10) -> list:
+    def _getArticleIds(self: object, query: str, max_results: int, timeout: int = 10, min_year: int = 1000,
+                       max_year: int = 3000, min_month:int =1, max_month: int= 12, min_day: int=1, max_day:int=31) -> list:
         """ Helper method to retrieve the article IDs for a query.
 
             Parameters:
@@ -243,6 +244,10 @@ class PubMed(object):
                 - article_ids   List, article IDs as a list.
         """
 
+        ## Novel strateies necessary to keep Query below 10k entries:
+        # Idea: Split dataset in batches int(all_results/10.000) + 1; SPlit Year Range into an equal amaount of Time Frames
+        # Call FUnction again with set Year Range
+
         # Create a placeholder for the retrieved IDs
         article_ids = []
 
@@ -251,7 +256,9 @@ class PubMed(object):
 
         # Add specific query parameters
         parameters["term"] = query
-        parameters["retmax"] = 50000
+        parameters["retmax"] = 10000
+        parameters["mindate"] =f"{min_year}/{min_month}/{min_day}"
+        parameters["maxdate"] =f"{max_year}/{max_month}/{max_day}"
 
         # Calculate a cut off point based on the max_results parameter
         if max_results < parameters["retmax"]:
@@ -259,38 +266,79 @@ class PubMed(object):
 
         # Make the first request to PubMed
         response = self._get(url="/entrez/eutils/esearch.fcgi", parameters=parameters, timeout=timeout)
+        # get amount of total fitting publications
+        total_result_count = int(response.get("esearchresult", {}).get("count"))
+        print("Year range:", min_year, max_year, "Month range:", min_month, max_month, "Day range:", min_day, max_day,
+              "Entries to retrieve:", total_result_count)
+
+
+        # <editor-fold desc="Description">
+        if total_result_count > parameters["retmax"]:
+            batch_count = int(total_result_count//parameters["retmax"]) + 1
+            if min_year != max_year:
+                year_step = (max_year - min_year)// batch_count
+                year_boundaries = {min_year + (year_step*i) for i in range(batch_count)}
+                for i in year_boundaries:
+                    article_ids += _getArticleIds(query=query, max_results=max_results, timeout=timeout,
+                                                  min_year=i-year_step + 1, max_year=i)
+                return article_ids
+            else:
+                if min_month != min_month:
+                    month_step = (max_month - min_month) // batch_count
+                    month_boundaries = {min_month + (month_step * i) for i in range(batch_count)}
+                    for i in month_boundaries:
+                        article_ids += _getArticleIds(query=query, max_results=max_results, timeout=timeout,
+                                                      min_year=min_year, max_year=max_year,
+                                                      min_month=i -month_step + 1, max_month=i)
+                    return article_ids
+                else:
+                    if min_day != min_day:
+                        day_step = (max_day - min_day) // batch_count
+                        day_boundaries = {min_day + (day_step * i) for i in range(batch_count)}
+                        for i in day_boundaries:
+                            article_ids += _getArticleIds(query=query, max_results=max_results, timeout=timeout,
+                                                          min_year=min_year, max_year=max_year,
+                                                          min_month=min_month, max_month=max_month,
+                                                          min_day=i - day_step + 1, max_day=i)
+                            return article_ids
+                    else:
+                        print("Year range:", min_year, max_year, "Month range:", min_month, max_month, "Day range:",
+                              min_day, max_day, "Too many entries:", total_result_count)
+                        return article_ids # if more than 10.000 entries are given per day, they can not be retrieved!
+            # YYYY / MM / DD, and these variants are also allowed: YYYY, YYYY / MM.
+        # </editor-fold>
 
         # Add the retrieved IDs to the list
         article_ids += response.get("esearchresult", {}).get("idlist", [])
-
-        # Get information from the response
-        total_result_count = int(response.get("esearchresult", {}).get("count"))
-        retrieved_count = int(response.get("esearchresult", {}).get("retmax")) -1
-
-        # If no max is provided (-1) we'll try to retrieve everything
-        if max_results == -1:
-            max_results = total_result_count
-
-        # If not all articles are retrieved, continue to make requests untill we have everything
-        while retrieved_count < total_result_count and retrieved_count < max_results:
-
-            # Calculate a cut off point based on the max_results parameter
-            if (max_results - retrieved_count) < parameters["retmax"]:
-                parameters["retmax"] = max_results - retrieved_count
-
-            # Start the collection from the number of already retrieved articles
-            parameters["retstart"] = retrieved_count
-
-            # Make a new request
-            response = self._get(
-                url="/entrez/eutils/esearch.fcgi", parameters=parameters
-            )
-
-            # Add the retrieved IDs to the list
-            article_ids += response.get("esearchresult", {}).get("idlist", [])
-
-            # Get information from the response
-            retrieved_count += int(response.get("esearchresult", {}).get("retmax"))
-
-        # Return the response
         return article_ids
+
+        # # Get information from the response
+        # retrieved_count = int(response.get("esearchresult", {}).get("retmax")) -1
+        #
+        # # If no max is provided (-1) we'll try to retrieve everything
+        # if max_results == -1:
+        #     max_results = total_result_count
+        #
+        # # If not all articles are retrieved, continue to make requests untill we have everything
+        # while retrieved_count < total_result_count and retrieved_count < max_results:
+        #
+        #     # Calculate a cut off point based on the max_results parameter
+        #     if (max_results - retrieved_count) < parameters["retmax"]:
+        #         parameters["retmax"] = max_results - retrieved_count
+        #
+        #     # Start the collection from the number of already retrieved articles
+        #     parameters["retstart"] = retrieved_count
+        #
+        #     # Make a new request
+        #     response = self._get(
+        #         url="/entrez/eutils/esearch.fcgi", parameters=parameters
+        #     )
+        #
+        #     # Add the retrieved IDs to the list
+        #     article_ids += response.get("esearchresult", {}).get("idlist", [])
+        #
+        #     # Get information from the response
+        #     retrieved_count += int(response.get("esearchresult", {}).get("retmax"))
+        #
+        # # Return the response
+        # return article_ids
