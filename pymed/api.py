@@ -232,7 +232,7 @@ class PubMed(object):
         for book in root.iter("PubmedBookArticle"):
             yield PubMedBookArticle(xml_element=book)
 
-    def _getArticleIds(self: object, query: str, max_results: int, timeout: int = 10, min_year: int = 1000,
+    def _getArticleIds(self: object, query: str, max_results: int, timeout: int = 10, min_year: int = 1500,
                        max_year: int = 3000, min_month:int =1, max_month: int= 12, min_day: int=1, max_day:int=31) -> list:
         """ Helper method to retrieve the article IDs for a query.
 
