@@ -277,32 +277,29 @@ class PubMed(object):
             batch_count = int(total_result_count//parameters["retmax"]) + 1
             if min_year != max_year:
                 year_step = (max_year - min_year)// batch_count
-                year_boundaries = {min_year + (year_step * i) - 1 if i == 0 else min_year + (year_step * i) for i
-                                    in
-                                    range(batch_count)}
+                year_boundaries = {min_year + (year_step * i) for i in range(batch_count)}
                 for i in sorted(year_boundaries):
                     article_ids += self._getArticleIds(query=query, max_results=max_results, timeout=timeout,
-                                                  min_year=i + 1, max_year=i + year_step)
+                                                  min_year=i if i==min_year else i +1, max_year=i + year_step)
                 return article_ids
             else:
                 if min_month != min_month:
                     month_step = (max_month - min_month) // batch_count
-                    month_boundaries = {min_month + (month_step * i) - 1 if i == 0 else min_month + (month_step * i) for i in
-                                      range(batch_count)}
+                    month_boundaries = {min_month + (month_step * i) for i in range(batch_count)}
                     for i in sorted(month_boundaries):
                         article_ids += self._getArticleIds(query=query, max_results=max_results, timeout=timeout,
                                                       min_year=min_year, max_year=max_year,
-                                                      min_month=i + 1, max_month=i + month_step)
+                                                      min_month=i if i==min_month else i +1, max_month=i + month_step)
                     return article_ids
                 else:
                     if min_day != min_day:
                         day_step = (max_day - min_day) // batch_count
-                        day_boundaries = {min_day + (day_step * i) - 1 if i == 0 else min_day + (day_step * i) for i in range(batch_count)}
+                        day_boundaries = {min_day + (day_step * i) for i in range(batch_count)}
                         for i in sorted(day_boundaries):
                             article_ids += self._getArticleIds(query=query, max_results=max_results, timeout=timeout,
                                                           min_year=min_year, max_year=max_year,
                                                           min_month=min_month, max_month=max_month,
-                                                          min_day=i + 1, max_day=i + day_step)
+                                                          min_day=i if i==min_day else i +1, max_day=i + day_step)
                             return article_ids
                     else:
                         print("Year range:", min_year, max_year, "Month range:", min_month, max_month, "Day range:",
