@@ -59,7 +59,7 @@ class PubMed(object):
         """
 
         # Retrieve the article IDs for the query
-        article_ids = self._getArticleIds(query=query, max_results=max_results, timeout=timeout)
+        article_ids = self._getArticleIds(query=query, max_results=max_results, timeout=timeout, max_year=int(datetime.date.today().year))
 
         # Get the articles themselves
         articles = list(
@@ -86,7 +86,7 @@ class PubMed(object):
         """
 
         # Retrieve the article IDs for the query
-        article_ids = self._getArticleIds(query=query, max_results=max_results, timeout=timeout)
+        article_ids = self._getArticleIds(query=query, max_results=max_results, timeout=timeout, max_year=int(datetime.date.today().year))
 
         return article_ids
 
@@ -119,7 +119,7 @@ class PubMed(object):
 
     def batch_query(self: object, query: str, batch_size: int = 250, timeout:int = 10):
         # Retrieve the article IDs for the query
-        article_ids = self._getArticleIds(query=query, max_results=10000000, timeout=timeout)
+        article_ids = self._getArticleIds(query=query, max_results=10000000, timeout=timeout, max_year=int(datetime.date.today().year))
 
         # Get the articles themselves
         for batch in batches(article_ids, batch_size):
@@ -268,9 +268,6 @@ class PubMed(object):
         response = self._get(url="/entrez/eutils/esearch.fcgi", parameters=parameters, timeout=timeout)
         # get amount of total fitting publications
         total_result_count = int(response.get("esearchresult", {}).get("count"))
-        print("Year range:", min_year, max_year, "Month range:", min_month, max_month, "Day range:", min_day, max_day,
-              "Entries to retrieve:", total_result_count)
-
 
         # <editor-fold desc="Description">
         if total_result_count > max_entries:
@@ -280,14 +277,9 @@ class PubMed(object):
                 year_gap = max_year - min_year
                 year_step = year_gap // batch_count
                 year_boundaries = {min_year + (year_step * i) for i in range(batch_count)}
-                print(sorted(year_boundaries), min_year, max_year, year_step)
                 for i in sorted(year_boundaries):
                     article_ids += self._getArticleIds(query=query, max_results=max_results, timeout=timeout,
                                                   min_year=i if i==min_year else i +1, max_year=i + year_step)
-                print("IF Clause", i, i+year_step, "min year", min_year, "max_year", max_year,
-                      isinstance(year_gap/batch_count, float),
-                      i + year_step != max_year)
-
                 if isinstance(year_gap/batch_count, float) and i + year_step != max_year:
                     article_ids += self._getArticleIds(query=query, max_results=max_results, timeout=timeout,
                                                        min_year=i + year_step, max_year=max_year)
