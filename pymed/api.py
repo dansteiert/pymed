@@ -277,7 +277,7 @@ class PubMed(object):
             batch_count = int(total_result_count//parameters["retmax"]) + 1
             if min_year != max_year:
                 year_step = (max_year - min_year)// batch_count
-                year_boundaries = {min_year + (year_step * i) - 1 if i == 0 else year + (year_step * i) for i
+                year_boundaries = {min_year + (year_step * i) - 1 if i == 0 else min_year + (year_step * i) for i
                                     in
                                     range(batch_count)}
                 for i in sorted(year_boundaries):
